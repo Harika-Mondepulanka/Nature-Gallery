@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Nature Photography Gallery</title>
+  <meta name="description" content="A clean nature photography portfolio with stories behind each shot." />
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#9aa6b2;
+      --accent:#6ee7b7;
+      --glass: rgba(255,255,255,0.04);
+      --radius:14px;
+      --max-width:1100px;
+      --g:18px;
+      --shadow: 0 6px 18px rgba(2,6,23,0.6);
+      --ease: cubic-bezier(.2,.9,.3,1);
+      --text:#e6eef3;
+    }
+
+    /* Reset & base */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, #081021 0%, #07121a 100%);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:40px 20px;
+      display:flex;
+      justify-content:center;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:var(--max-width);
+    }
+
+    header.site-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:24px;
+    }
+
+    .brand{
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .logo{
+      width:52px;height:52px;border-radius:12px;
+      background:linear-gradient(135deg, #3ad3a1, #6ee7b7);
+      box-shadow: 0 6px 18px rgba(102,231,193,0.12), inset 0 -6px 20px rgba(255,255,255,0.05);
+      display:flex;align-items:center;justify-content:center;
+      color:#032; font-weight:700; font-size:20px;
+    }
+    h1{margin:0;font-size:20px;letter-spacing:-0.2px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    /* Controls */
+    .controls{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .search{
+      display:flex;align-items:center;gap:8px;
+      background:var(--glass);
+      padding:8px 12px;border-radius:12px;
+      box-shadow: var(--shadow);
+    }
+    .search input{
+      border:0;background:transparent;color:var(--text);outline:0;width:220px;
+      font-size:14px;
+    }
+    .tags{
+      display:flex;gap:8px;flex-wrap:wrap;
+    }
+    .tag{
+      background:transparent;border:1px solid rgba(255,255,255,0.06);
+      padding:6px 10px;border-radius:999px;font-size:13px;color:var(--muted);
+      cursor:pointer;transition:all .18s var(--ease);
+    }
+    .tag.active{
+      color:#052; background:linear-gradient(90deg,#bff5d7, #6ee7b7);
+      border:0; box-shadow: 0 6px 18px rgba(110,231,183,0.12); transform:translateY(-4px);
+    }
+
+    /* Gallery grid */
+    .gallery{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:var(--g);
+      margin-top:22px;
+    }
+
+    @media (max-width:980px){ .gallery{ grid-template-columns: repeat(2, 1fr);} .search input{width:140px} }
+    @media (max-width:600px){ .gallery{ grid-template-columns: 1fr;} header.site-head{flex-direction:column;align-items:flex-start} }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:var(--radius); overflow:hidden; position:relative;
+      box-shadow: var(--shadow);
+      transform-origin:center; transition:transform .25s var(--ease), box-shadow .25s var(--ease);
+      cursor:pointer;
+    }
+    .card:hover{ transform: translateY(-6px); box-shadow: 0 18px 40px rgba(2,6,23,0.7); }
+
+    .imgwrap{
+      width:100%; padding-top:66%; position:relative; overflow:hidden;
+    }
+    .imgwrap img{
+      position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block;
+      transition:transform .6s var(--ease); will-change:transform;
+      transform-origin:center center;
+    }
+    .card:hover .imgwrap img{ transform: scale(1.06); }
+
+    .meta{
+      padding:12px 14px; display:flex; gap:12px; align-items:center; justify-content:space-between;
+    }
+    .meta .left{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .title{ font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sub{ font-size:13px; color:var(--muted); }
+
+    .taglist{ display:flex; gap:8px; align-items:center; }
+    .chip{ font-size:12px; padding:6px 8px; border-radius:999px; background:rgba(255,255,255,0.02); color:var(--muted); border:1px solid rgba(255,255,255,0.03); }
+
+    /* Fade-in on load */
+    .card{ opacity:0; transform:translateY(10px); transition:opacity .45s var(--ease), transform .45s var(--ease); }
+    .card.visible{ opacity:1; transform:translateY(0); }
+
+    /* Lightbox */
+    .lightbox{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.85));
+      z-index:60; padding:36px; visibility:hidden; opacity:0; transition:opacity .2s;
+    }
+    .lightbox.open{ visibility:visible; opacity:1; }
+    .lb-card{
+      background:linear-gradient(180deg,#07121a,#071d22); border-radius:14px; max-width:1000px; width:100%;
+      display:grid; grid-template-columns: 1fr 380px; gap:18px; padding:18px;
+      box-shadow: 0 30px 80px rgba(2,6,23,0.8);
+    }
+    @media (max-width:980px){ .lb-card{ grid-template-columns: 1fr; } .lb-side{ order:2 } }
+
+    .lb-image{ width:100%; aspect-ratio:16/10; overflow:hidden; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+    .lb-image img{ width:100%; height:100%; object-fit:contain; display:block; }
+
+    .lb-side{ padding:6px 6px; display:flex; flex-direction:column; gap:12px; color:var(--muted); }
+    .lb-side h2{ margin:0; color:var(--text); font-size:18px }
+    .lb-side .meta-line{ font-size:13px; color:var(--muted); }
+    .story{ font-size:14px; line-height:1.5; color:#d9eef0; max-height:360px; overflow:auto; padding-right:6px; }
+
+    .lb-controls{ display:flex; gap:8px; margin-top:auto; }
+    .btn{
+      border:0; padding:9px 12px; border-radius:10px; cursor:pointer; font-weight:600;
+      background:rgba(255,255,255,0.03); color:var(--text);
+    }
+    .close{ background:transparent; color:var(--muted); }
+
+    /* small footer */
+    footer{ margin-top:18px; color:var(--muted); font-size:13px; text-align:center; }
+
+    /* accessibility focus */
+    [tabindex]:focus, button:focus, .tag:focus{ outline:2px dashed rgba(110,231,183,0.18); outline-offset:4px; }
+    /* --- Visual Enhancements --- */
+
+/* Gradient background animation */
+body {
+  background: linear-gradient(120deg, #081021, #05121a, #0a1e2e);
+  background-size: 400% 400%;
+  animation: bgShift 18s ease infinite;
+}
+@keyframes bgShift {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
+
+/* Card hover glow */
+.card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 45px rgba(110, 231, 183, 0.25), 0 0 25px rgba(110,231,183,0.08);
+  transition: all 0.35s var(--ease);
+}
+
+/* Smooth fade + scale-in reveal */
+.card.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1.02);
+  animation: cardPop 0.6s var(--ease);
+}
+@keyframes cardPop {
+  from {opacity: 0; transform: translateY(16px) scale(0.98);}
+  to {opacity: 1; transform: translateY(0) scale(1.02);}
+}
+
+/* Lightbox enhancements */
+.lightbox.open {
+  backdrop-filter: blur(8px) saturate(120%);
+  animation: lbFadeIn .3s ease forwards;
+}
+@keyframes lbFadeIn {
+  from {opacity: 0; transform: scale(0.96);}
+  to {opacity: 1; transform: scale(1);}
+}
+
+/* Lightbox image subtle zoom */
+.lb-image img {
+  transform: scale(0.96);
+  transition: transform 0.6s ease-in-out;
+}
+.lightbox.open .lb-image img {
+  transform: scale(1);
+}
+
+/* Story scroll fade gradient */
+.story {
+  position: relative;
+}
+.story::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  height: 40px;
+  background: linear-gradient(180deg, transparent, rgba(7,18,26,0.9));
+  pointer-events: none;
+}
+
+/* Tag hover glow */
+.tag:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(110,231,183,0.3);
+}
+
+/* Search focus glow */
+.search input:focus {
+  box-shadow: 0 0 10px rgba(110,231,183,0.3);
+}
+
+/* Add subtle footer fade */
+footer {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+footer:hover {opacity: 1;}
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site-head" aria-label="Site header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">NG</div>
+        <div>
+          <h1>Nature Gallery — Stories in Light</h1>
+          <p class="lead">A curated collection of landscapes, wildlife, and moments. Click an image for the story.</p>
+        </div>
+      </div>
+
+      <div class="controls" role="toolbar" aria-label="Gallery controls">
+        <div class="search" title="Search by title or story">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M20 20l-3.5-3.5" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <input id="q" placeholder="Search (title, story...)" />
+        </div>
+
+        <div class="tags" id="tagbar" aria-label="Filter by tags">
+          <button class="tag active" data-tag="all">All</button>
+          <button class="tag" data-tag="landscape">Landscape</button>
+          <button class="tag" data-tag="wildlife">Wildlife</button>
+          <button class="tag" data-tag="macro">Macro</button>
+          <button class="tag" data-tag="black-and-white">B&W</button>
+          <button class="tag" data-tag="seascape">seascape</button>
+          <button class="tag" data-tag="night">night</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="gallery" id="gallery" aria-live="polite">
+        <!-- Card template -->
+        <!-- Replace the src with your own images or use local assets. We use unsplash placeholders here. -->
+        <article class="card" data-tags="landscape" data-title="Misty Peaks" tabindex="0">
+          <div class="imgwrap">
+            <img loading="lazy" alt="Misty mountains at sunrise" src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop" />
+          </div>
+          <div class="meta">
+            <div class="left">
+              <div class="title">Misty Peaks</div>
+              <div class="sub">Himachal Pradesh · Dawn</div>
+            </div>
+            <div class="taglist">
+              <div class="chip">Landscape</div>
+            </div>
+          </div>
+          <div class="story-content" hidden>
+            <h3>Misty Peaks — Story</h3>
+            <p>Captured at first light after a storm rolled through. The mist created natural layers, allowing the valley to reveal itself slowly. I used a 70-200mm lens to compress the scene and accentuate the layers.</p>
+            <p><strong>Camera:</strong> Canon EOS R5 · 200mm · f/8 · 1/125s</p>
+          </div>
+        </article>
+
+        <article class="card" data-tags="wildlife" data-title="Silent Stare" tabindex="0">
+          <div class="imgwrap">
+            <img loading="lazy" alt="Close up of a leopard" src="https://images.unsplash.com/photo-1546182990-dffeafbe841d?q=80&w=1600&auto=format&fit=crop" />
+          </div>
+          <div class="meta">
+            <div class="left">
+              <div class="title">Silent Stare</div>
+              <div class="sub">Bandhavgarh · Leopard</div>
+            </div>
+            <div class="taglist">
+              <div class="chip">Wildlife</div>
+            </div>
+          </div>
+          <div class="story-content" hidden>
+            <h3>Silent Stare — Story</h3>
+            <p>This leopard sat motionless on a low branch, observing the clearing. I shot from inside a jeep with a long lens to keep distance and minimize disturbance.</p>
+            <p><strong>Camera:</strong> Nikon D850 · 400mm · f/5.6 · 1/500s</p>
+          </div>
+        </article>
+
+        <article class="card" data-tags="macro" data-title="Dew Kissed Petal" tabindex="0">
+          <div class="imgwrap">
+            <img loading="lazy" alt="Macro of a dewy flower petal" src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1600&auto=format&fit=crop" />
+          </div>
+          <div class="meta">
+            <div class="left">
+              <div class="title">Dew Kissed Petal</div>
+              <div class="sub">Backyard Macro</div>
+            </div>
+            <div class="taglist">
+              <div class="chip">Macro</div>
+            </div>
+          </div>
+          <div class="story-content" hidden>
+            <h3>Dew Kissed Petal — Story</h3>
+            <p>A quiet morning with heavy dew. I used natural light and a 100mm macro to reveal texture and the delicate curve of the petal.</p>
+            <p><strong>Camera:</strong> Sony A7R IV · 100mm macro · f/2.8 · 1/160s</p>
+          </div>
+        </article>
+
+        <article class="card" data-tags="landscape,black-and-white" data-title="Monochrome Dunes" tabindex="0">
+          <div class="imgwrap">
+            <img loading="lazy" alt="Black and white dunes" src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?q=80&w=1600&auto=format&fit=crop&sat=-100" />
+          </div>
+          <div class="meta">
+            <div class="left">
+              <div class="title">Monochrome Dunes</div>
+              <div class="sub">Thar Desert · Minimal</div>
+            </div>
+            <div class="taglist">
+              <div class="chip">B&W</div>
+            </div>
+          </div>
+          <div class="story-content" hidden>
+            <h3>Monochrome Dunes — Story</h3>
+            <p>Converted to black and white to emphasize shape and shadow. The wind had just sculpted the ridges into clean, flowing lines.</p>
+            <p><strong>Camera:</strong> Fujifilm X-T3 · 35mm · f/11 · 1/250s</p>
+          </div>
+        </article>
+        <article class="card" data-tags="landscape,seascape" data-title="Emerald Coast" tabindex="0">
+  <div class="imgwrap">
+    <img loading="lazy" alt="Turquoise sea with cliffs" src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1600&auto=format&fit=crop" />
+  </div>
+  <div class="meta">
+    <div class="left">
+      <div class="title">Emerald Coast</div>
+      <div class="sub">Goa · Evening Light</div>
+    </div>
+    <div class="taglist">
+      <div class="chip">Landscape</div>
+      <div class="chip">Seascape</div>
+    </div>
+  </div>
+  <div class="story-content" hidden>
+    <h3>Emerald Coast — Story</h3>
+    <p>The sea glowed under the golden light just before sunset. I used a polarizing filter to cut glare and enhance the green hue of the water.</p>
+    <p><strong>Camera:</strong> Canon EOS R6 · 24mm · f/11 · 1/100s</p>
+  </div>
+</article>
+
+<article class="card" data-tags="night,astrophotography" data-title="Celestial Arch" tabindex="0">
+  <div class="imgwrap">
+    <img loading="lazy" alt="Milky Way arch over mountains" src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?q=80&w=1600&auto=format&fit=crop" />
+  </div>
+  <div class="meta">
+    <div class="left">
+      <div class="title">Celestial Arch</div>
+      <div class="sub">Ladakh · Night Sky</div>
+    </div>
+    <div class="taglist">
+      <div class="chip">Night</div>
+      
+    </div>
+  </div>
+  <div class="story-content" hidden>
+    <h3>Celestial Arch — Story</h3>
+    <p>The Milky Way rose perfectly over the ridge at 2 AM. I stitched 8 vertical shots to create this panorama, using a star tracker for detail.</p>
+    <p><strong>Camera:</strong> Sony A7 III · 20mm · f/1.8 · 20s (×8)</p>
+  </div>
+</article>
+
+<article class="card" data-tags="forest,landscape" data-title="Whispering Pines" tabindex="0">
+  <div class="imgwrap">
+    <img loading="lazy" alt="Foggy pine forest" src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?q=80&w=1600&auto=format&fit=crop" />
+  </div>
+  <div class="meta">
+    <div class="left">
+      <div class="title">Whispering Pines</div>
+      <div class="sub">Coorg · Morning Mist</div>
+    </div>
+    <div class="taglist">
+      <div class="chip">Landscape</div>
+    </div>
+  </div>
+  <div class="story-content" hidden>
+    <h3>Whispering Pines — Story</h3>
+    <p>A quiet moment when fog drifted through the pine trees. The silence was broken only by dew falling from the leaves.</p>
+    <p><strong>Camera:</strong> Nikon Z7 · 35mm · f/5.6 · 1/80s</p>
+  </div>
+</article>
+
+<article class="card" data-tags="waterfall,landscape" data-title="Silver Veil Falls" tabindex="0">
+  <div class="imgwrap">
+    <img loading="lazy" alt="Long exposure of waterfall" src="https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?q=80&w=1600&auto=format&fit=crop" />
+  </div>
+  <div class="meta">
+    <div class="left">
+      <div class="title">Silver Veil Falls</div>
+      <div class="sub">Meghalaya · Long Exposure</div>
+    </div>
+    <div class="taglist">
+      <div class="chip">Landscape</div>
+    </div>
+  </div>
+  <div class="story-content" hidden>
+    <h3>Silver Veil Falls — Story</h3>
+    <p>Captured using a 6-stop ND filter to blur the motion of the cascading water and reveal the textures of the rocks below.</p>
+    <p><strong>Camera:</strong> Fujifilm X-T5 · 18mm · f/13 · 3s</p>
+  </div>
+</article>
+
+<article class="card" data-tags="aerial,landscape" data-title="Patchwork Fields" tabindex="0">
+  <div class="imgwrap">
+    <img loading="lazy" alt="Aerial view of fields" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop" />
+  </div>
+  <div class="meta">
+    <div class="left">
+      <div class="title">Patchwork Fields</div>
+      <div class="sub">Punjab · Drone View</div>
+    </div>
+    <div class="taglist">
+      <div class="chip">Landscape</div>
+    </div>
+  </div>
+  <div class="story-content" hidden>
+    <h3>Patchwork Fields — Story</h3>
+    <p>A bird’s-eye perspective showcasing the geometric beauty of farmland just before harvest. The mix of greens and yellows formed a living quilt.</p>
+    <p><strong>Camera:</strong> DJI Mavic 3 · 28mm eq. · f/4 · 1/320s</p>
+  </div>
+</article>
+
+
+        <!-- add more cards as needed -->
+      </section>
+    </main>
+
+    <footer>
+      Tip: Replace placeholder images with your own high-resolution files. Consider using a headless CMS (Netlify/Sanity) to manage captions & uploads.
+    </footer>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="lb-card" role="document">
+      <div class="lb-image" id="lb-image">
+        <img src="" alt="" id="lb-img"/>
+      </div>
+      <aside class="lb-side">
+        <h2 id="lb-title">Title</h2>
+        <div class="meta-line" id="lb-sub">Location · tag</div>
+        <div class="story" id="lb-story">Story content</div>
+        <div class="lb-controls">
+          <button class="btn close" id="closeBtn">Close</button>
+          <button class="btn" id="prevBtn">‹ Prev</button>
+          <button class="btn" id="nextBtn">Next ›</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // Basic JS: lazy fade-in, tag filter, search, lightbox + keyboard nav
+    const cards = Array.from(document.querySelectorAll('.card'));
+    const gallery = document.getElementById('gallery');
+    const q = document.getElementById('q');
+    const tagbar = document.getElementById('tagbar');
+
+    // Intersection Observer for reveal
+    const io = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(e.isIntersecting) e.target.classList.add('visible');
+      });
+    }, {threshold:.08});
+    cards.forEach(c => io.observe(c));
+
+    // Tag filtering
+    tagbar.addEventListener('click', (ev)=>{
+      const btn = ev.target.closest('.tag');
+      if(!btn) return;
+      tagbar.querySelectorAll('.tag').forEach(t=>t.classList.remove('active'));
+      btn.classList.add('active');
+      filter();
+    });
+
+    // Search filter
+    q.addEventListener('input', debounce(filter, 220));
+
+    function filter(){
+      const activeTag = tagbar.querySelector('.tag.active')?.dataset.tag || 'all';
+      const query = q.value.trim().toLowerCase();
+      cards.forEach(card=>{
+        const title = card.dataset.title.toLowerCase();
+        const tags = card.dataset.tags.toLowerCase();
+        const story = (card.querySelector('.story-content')?.textContent || '').toLowerCase();
+        const matchTag = (activeTag === 'all') || tags.split(',').map(s=>s.trim()).includes(activeTag);
+        const matchQuery = !query || title.includes(query) || story.includes(query);
+        if(matchTag && matchQuery){
+          card.style.display = ''; // show
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    function debounce(fn, wait=200){
+      let t;
+      return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); }
+    }
+
+    // Lightbox
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lb-img');
+    const lbTitle = document.getElementById('lb-title');
+    const lbSub = document.getElementById('lb-sub');
+    const lbStory = document.getElementById('lb-story');
+    const closeBtn = document.getElementById('closeBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    let visibleCards = cards.filter(c=>c.style.display !== 'none');
+    function refreshVisible(){ visibleCards = cards.filter(c=>c.style.display !== 'none'); }
+
+    let currentIndex = 0;
+    function openLightbox(index){
+      refreshVisible();
+      currentIndex = index;
+      const card = visibleCards[currentIndex];
+      if(!card) return;
+      const img = card.querySelector('img');
+      const src = img.src;
+      lbImg.src = src;
+      lbImg.alt = img.alt || '';
+      lbTitle.textContent = card.querySelector('.title').textContent;
+      lbSub.textContent = card.querySelector('.sub').textContent + ' · ' + (card.dataset.tags || '');
+      lbStory.innerHTML = card.querySelector('.story-content').innerHTML;
+      lb.classList.add('open');
+      lb.setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    }
+
+    function closeLightbox(){
+      lb.classList.remove('open');
+      lb.setAttribute('aria-hidden','true');
+      document.body.style.overflow = '';
+    }
+
+    // Attach click on cards
+    gallery.addEventListener('click', (ev)=>{
+      const card = ev.target.closest('.card');
+      if(!card) return;
+      // find index among visible
+      refreshVisible();
+      const idx = visibleCards.indexOf(card);
+      if(idx>=0) openLightbox(idx);
+    });
+
+    // keyboard & buttons
+    closeBtn.addEventListener('click', closeLightbox);
+    prevBtn.addEventListener('click', ()=>{ if(currentIndex>0) openLightbox(currentIndex-1); });
+    nextBtn.addEventListener('click', ()=>{ if(currentIndex < visibleCards.length-1) openLightbox(currentIndex+1); });
+
+    document.addEventListener('keydown', (e)=>{
+      if(lb.classList.contains('open')){
+        if(e.key === 'Escape') closeLightbox();
+        if(e.key === 'ArrowRight') nextBtn.click();
+        if(e.key === 'ArrowLeft') prevBtn.click();
+      }
+    });
+
+    // make cards keyboard-accessible (Enter opens)
+    cards.forEach(card=>{
+      card.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          refreshVisible();
+          const idx = visibleCards.indexOf(card);
+          if(idx>=0) openLightbox(idx);
+        }
+      });
+    });
+
+    // Recompute visible list when filters change
+    const obsFilter = new MutationObserver(()=> refreshVisible());
+    obsFilter.observe(gallery, {attributes:true, subtree:true, childList:true});
+
+    // initial filter pass
+    filter();
+
+  </script>
+</body>
+</html>
